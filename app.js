@@ -2,6 +2,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const { PrismaClient } = require("@prisma/client");
+const bcrypt = require("bcrypt");
 
 const prisma = new PrismaClient();
 
@@ -25,6 +26,31 @@ app.get("/login", (req, res) => {
 // render our register page
 app.get("/register", (req, res) => {
     res.render("register");
+});
+
+
+
+// post register
+app.post("/register", async (req, res) => {
+    try {
+        const {username, password} = req.body;
+        const hashedPassword = await bcrypt.hash(password, 10); // Hashing password
+        const newUser = await prisma.User.create({
+            data: {
+                email: username,
+                password: hashedPassword    // Replace password with hashed password
+            }
+        });
+        res.status(201).render("secrets");
+        
+    } catch (error) {
+        if (error.code === "InvalidInputError") {
+            res.status(400).json({message: "Invalid input" + error.message});
+        } else {
+            console.log(error);
+            res.status(500).json({message: "And error occurred while creating the user"});
+        }
+    }
 });
 
 
