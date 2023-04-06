@@ -55,6 +55,32 @@ app.post("/register", async (req, res) => {
 
 
 
+// post login
+app.post("/login", async (req,res) => {
+    try {
+        const {username, password} = req.body;
+        const foundUser = await prisma.User.findUnique({
+            where: {
+                email: username
+            }
+        });
+
+        if (foundUser) {
+            const isPasswordMatch = await bcrypt.compare(password, foundUser.password); // Comparing hashed password with user's input
+            if (isPasswordMatch) {
+                res.status(200).render("secrets")
+            } else {
+                res.status(400).json("message: Password is wrong")
+            }
+        } else {
+            res.status(404).json("message: User not found!!");
+        }
+    } catch (error) {
+        console.log(error);
+        res.status(500).json("And error while getting the user");
+    }
+});
+
 
 
 
