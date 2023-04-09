@@ -156,8 +156,17 @@ app.post("/register", async (req, res) => {
         },
       });
 
-      res.status(200).redirect("/secrets");
-      
+      req.login(newUser, function(err) {
+        if (err) {
+          console.error(err);
+          return res.status(500).json({ message: "Error occurred while creating the user" });
+        }
+        return res.status(200).redirect("/secrets");
+      });
+
+  
+    //   res.status(200).redirect("/secrets");
+    
     } catch (error) {
       if (error.code === "InvalidInputError") {
         res.status(400).json({ message: "Invalid input" + error.message });
