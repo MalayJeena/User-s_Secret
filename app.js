@@ -35,15 +35,15 @@ app.use(passport.session());
 
 passport.use(new LocalStrategy({
 
-    usernameField: "email",
+    usernameField: "username",
     passwordField: "password"
 
-}, async (email, password, done) => {
+}, async (username, password, done) => {
     try {
         
         const user = await prisma.User.findUnique({
             where: {
-                email: email
+                email: username
             }
         });
 
@@ -58,6 +58,7 @@ passport.use(new LocalStrategy({
             console.log("whyyyyyyyyyyyyyy")
             return done(null, user);
         } else {
+            console.log("incorrect message");
             return done(null, false, {message: "incorrect password"});
         }
 
@@ -73,7 +74,7 @@ passport.use(new LocalStrategy({
 // serializing the cookies
 passport.serializeUser((user, done) => {
     console.log("User serialized: ", user);
-    done(null, user.id);
+    done(null, user.user_id);
 })
 
 
@@ -82,7 +83,7 @@ passport.deserializeUser(async (id, done) => {
     try {
         const user = await prisma.User.findUnique({
             where : {
-                id: id
+                user_id: id
             }
         });
 
@@ -154,8 +155,9 @@ app.post("/register", async (req, res) => {
           password: hashedPassword, // replaces user's password with hashed password
         },
       });
-  
+
       res.status(200).redirect("/secrets");
+      
     } catch (error) {
       if (error.code === "InvalidInputError") {
         res.status(400).json({ message: "Invalid input" + error.message });
