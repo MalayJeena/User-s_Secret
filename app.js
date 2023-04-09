@@ -3,6 +3,7 @@ const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const { PrismaClient } = require("@prisma/client");
 const bcrypt = require("bcrypt");
+const salting = 12;
 
 const prisma = new PrismaClient();
 
@@ -34,13 +35,15 @@ app.get("/register", (req, res) => {
 app.post("/register", async (req, res) => {
     try {
         const {username, password} = req.body;
-        const hashedPassword = await bcrypt.hash(password, 10); // Hashing password
-        const newUser = await prisma.User.create({
-            data: {
-                email: username,
-                password: hashedPassword    // Replace password with hashed password
-            }
-        });
+        await bcrypt.hash(password, salting, async function (err, hash){    // added salting in our hashing
+            const newUser = await prisma.User.create({
+                data: {
+                    email: username,
+                    password: hash    // Replaces password with hashed password
+                }
+            });
+        }); 
+        
         res.status(201).render("secrets");
         
     } catch (error) {
@@ -66,18 +69,20 @@ app.post("/login", async (req,res) => {
         });
 
         if (foundUser) {
-            const isPasswordMatch = await bcrypt.compare(password, foundUser.password); // Comparing hashed password with user's input
-            if (isPasswordMatch) {
-                res.status(200).render("secrets")
-            } else {
-                res.status(400).json("message: Password is wrong")
-            }
+            await bcrypt.compare(password, foundUser.password, function (err, result){      // Comparing hashed password with user's input
+                if (result === true) {
+                    res.status(200).render("secrets")
+                } else {
+                    res.status(400).json("message: Password is wrong")
+                }
+            }); 
+            
         } else {
             res.status(404).json("message: User not found!!");
         }
     } catch (error) {
         console.log(error);
-        res.status(500).json("And error while getting the user");
+        res.status(500).json("error while getting the user");
     }
 });
 
