@@ -178,7 +178,15 @@ app.post("/register", async (req, res) => {
     }
   });
 
-
+app.get("/logout", (req, res) => {
+    req.logout(function(err) {
+      if (err) {
+        console.log(err);
+        return res.status(500).json({ message: "Error occurred while logging out" });
+      }
+    });
+    res.redirect("/");
+});
 
 
 
