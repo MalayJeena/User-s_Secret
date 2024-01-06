@@ -1,5 +1,6 @@
 const express = require("express");
 const bodyParser = require("body-parser");
+require('dotenv').config();
 const ejs = require("ejs");
 const { PrismaClient } = require("@prisma/client");
 const bcrypt = require("bcrypt");
@@ -10,6 +11,7 @@ const prisma = new PrismaClient();
 const session = require("express-session");
 const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
+var GoogleStrategy = require('passport-google-oauth20').Strategy;
 
 const app = express();
 
@@ -32,9 +34,8 @@ app.use(passport.session());
 
 
 
-
 passport.use(new LocalStrategy({
-
+  
     usernameField: "username",
     passwordField: "password"
 
@@ -63,45 +64,70 @@ passport.use(new LocalStrategy({
         }
 
     } catch (error) {
-        
-        console.error(error);
-        
-        return done(error);
+      
+      console.error(error);
+      
+      return done(error);
     }
 }));
-
-
+  
+  
 // serializing the cookies
 passport.serializeUser((user, done) => {
-    console.log("User serialized: ", user);
-    done(null, user.user_id);
+  console.log("User serialized: ", user);
+  done(null, user.user_id);
 })
 
 
 // deserializing the cookies
 passport.deserializeUser(async (id, done) => {
-    try {
-        const user = await prisma.User.findUnique({
-            where : {
-                user_id: id
+  try {
+    const user = await prisma.User.findUnique({
+      where : {
+              user_id: id
             }
-        });
-
-        console.log("User deserialized: ", user);
-        done(null, user);
-
-    } catch (error) {
-        
-        console.error(error);
-        
-        done(error);
-    }
+          });
+          
+          console.log("User deserialized: ", user);
+          done(null, user);
+          
+        } catch (error) {
+          
+      console.error(error);
+      
+      done(error);
+  }
 });
+  
+  
+// initialize google passport here
+passport.use(new GoogleStrategy({
+  clientID: "1099030916116-28s1jjh78pib3enof0ttkt7vv8b9c79p.apps.googleusercontent.com",
+  clientSecret: "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",
+  callbackURL: "http://localhost:5000/auth/google/secrets",
+  userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo"   // this is to fix the error of google+ deprecation
+},
+function(accessToken, refreshToken, profile, cb) {
+  console.log(profile);
+  User.findOrCreate({ googleId: profile.id }, function (err, user) {  // findOrCreate is a function of passport-google-oauth20
+    return cb(err, user);
+  });
+}
+));
 
+// render the google login page
+app.get("/auth/google", (req, res) => {
+  passport.authenticate("google", {scope: ["profile"]})
+})
 
-
-
-
+// Google callback route
+app.get("/auth/google/secrets",
+    passport.authenticate("google", { failureRedirect: "/login" }), 
+    (req, res) => {
+        // Successful authentication, redirect to secrets page or any other desired page
+        res.redirect("/secrets");
+    }
+);
 
 // render our home page
 app.get("/", (req, res) => {
